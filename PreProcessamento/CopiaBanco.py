@@ -1,5 +1,8 @@
 import pymongo
 import time
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Aqui faz a conexão com o banco de dados
 mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")

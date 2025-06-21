@@ -1,6 +1,9 @@
 import pymongo
 import time
 from FluxoFile import FluxoFile
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Hiperparâmetros
 PERMITIR_IPV6 = True

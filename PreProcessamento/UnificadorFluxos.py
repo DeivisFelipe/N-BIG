@@ -2,8 +2,11 @@ import pymongo
 import time
 import os
 import subprocess
+import sys
+import io
 from FluxoFile import FluxoFile
 from datetime import datetime
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Lista de arquivos a serem processados (caida01 já está no banco)
 FILES_FLUXOS = [

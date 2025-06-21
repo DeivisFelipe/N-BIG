@@ -1,6 +1,9 @@
 import pymongo
 import time
 from FluxoFile import FluxoFile
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Hiperparâmetros
 PERMITIR_IPV6 = True
@@ -16,7 +19,7 @@ collection = db["caida_collection"] # Cria a coleção "caida_collection" se ela
 
 # Verifica se a coleção tem algum dado, se tiver mostra uma mensagem e cancela a exec
 if collection.count_documents({}) > 0:
-    print("A coleção ja possui dados")
+    print("A coleção já possui dados")
 
     # Pergunta se deseja limpar a coleção
     resposta = input("Deseja limpar a coleção? (s/n): ").strip().lower()

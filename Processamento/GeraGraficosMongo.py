@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import pymongo
 import time
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Configurações
 DATABASE = 1 # 1 para CAIDA, 2 para MAWI
