@@ -3,6 +3,7 @@
 This folder contains scripts for the preprocessing stage of the project.
 
 ## Main functionalities:
+
 - 🗄️ Database backup for safety.
 - 💾 Insertion of flows into the MongoDB database.
 - 🔗 Unification of flows from different `.txt` files, as long as they have the same 5-tuple and are within the defined timeout.
