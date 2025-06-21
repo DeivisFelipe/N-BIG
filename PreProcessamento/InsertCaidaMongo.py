@@ -24,7 +24,7 @@ if collection.count_documents({}) > 0:
         collection.drop()  # Limpa a coleção
         print("Coleção limpa.")
     else:
-        print("Execução cancelada.")
+        print("A execução foi cancelada.")
         mongo_client.close()
         exit()
 
@@ -54,7 +54,7 @@ with open(file_name, "r") as file:
         # Adiciona o dicionário ao lote
         batch.append(fluxo_dict)
 
-        # Insere o dicionário na colecao
+        # Insere o dicionário na coleção
         if len(batch) == BATCH_SIZE:
             collection.insert_many(batch)
             batch = []

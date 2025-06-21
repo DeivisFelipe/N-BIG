@@ -32,7 +32,7 @@ PCAP_TIMESTAMPS = {
     "caida16.txt": (1547730780.000004000, 1547730839.999999000),
 }
 
-# Conversão para ms
+# Conversão para milissegundos
 def seconds_to_millis(ts):
     return int(ts * 1000)
 
@@ -46,14 +46,14 @@ REAL_OFFSETS = {
 # Parâmetros
 DATA_BASE_NAME = "fluxos_database"
 COLLECTION_NAME = "caida_collection"
-TIMEOUT_LIMIT = 20 * 1000  # 20s em ms
+TIMEOUT_LIMIT = 20 * 1000  # 20s em milissegundos
 BATCH_SIZE = 500000
 
 # Log formatado
-def log(msg):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+def log(message):
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
 
-# Atualiza ou insere novo fluxo
+# Atualiza ou insere um novo fluxo
 def atualizar_ou_inserir_fluxo(flow, result, offset):
     flow_start_abs = offset + flow.start
     flow_end_abs = flow_start_abs + flow.duration
@@ -86,7 +86,7 @@ with pymongo.MongoClient("mongodb://localhost:27017/") as mongo_client:
     for file_name in FILES_FLUXOS:
         full_path = f"./Datasets/Fluxos/CAIDA/{file_name}"
         if not os.path.isfile(full_path):
-            log(f"Arquivo não encontrado: {full_path}, pulando...")
+            log(f"Arquivo não encontrado: {full_path}. Pulando...")
             continue
 
         actual_offset = REAL_OFFSETS[file_name]
@@ -142,10 +142,10 @@ with pymongo.MongoClient("mongodb://localhost:27017/") as mongo_client:
                 collection.bulk_write(bulk_operations)
 
         duration = time.time() - start_time
-        log(f"Arquivo {file_name} processado em {duration:.2f}s")
+        log(f"Arquivo {file_name} processado em {duration:.2f} s")
         log(f"→ Fluxos inseridos: {total_inserted}")
         log(f"→ Fluxos atualizados: {total_updated}")
 
 # Gera gráficos
-log("Gerando gráficos com GeraGraficosMongo.py...")
+log("Gerando gráficos com o GeraGraficosMongo.py...")
 subprocess.run(["python3", "-u", "./AvaliadorFluxo/GeraGraficosMongo.py"])

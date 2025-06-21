@@ -18,7 +18,7 @@ elif DATABASE == 2:
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
 else:
-    raise ValueError("Database inválido. Use 1 para CAIDA ou 2 para MAWI.")
+    raise ValueError("Banco de dados inválido. Use 1 para CAIDA ou 2 para MAWI.")
 
 def main():
     # Conecta ao MongoDB
@@ -57,16 +57,6 @@ def main():
     duration_histogram(collection, duration_intervals, flows_by_duration_counters, packets_by_duration_counters, total_bytes_by_duration_counters)
     bytes_histogram(collection, bytes_intervals, flows_by_bytes_counters)
     average_packet_size_by_duration_histogram(duration_intervals, packets_by_duration_counters, total_bytes_by_duration_counters)
-
-    # # Número total de pacotes
-    # total_pacotes = sum(contadorPacotes)
-    # print("Total de pacotes: ", total_pacotes)
-    # # Número total de bytes
-    # total_bytes = sum(bytesSoma)
-    # print("Total de bytes: ", total_bytes)
-    # # Tamanho medio dos pacotes
-    # tamanho_medio = total_bytes / total_pacotes
-    # print("Tamanho medio dos pacotes: ", tamanho_medio)
 
 # Graficos
 
@@ -151,15 +141,15 @@ def average_packet_size_by_duration_histogram(duration_intervals, packets_by_dur
         else:
             tamanho_medio.append(0)
 
-    # Grafico de linha
+    # Gráfico de linha
     plt.clf()
     plt.plot(duration_intervals, tamanho_medio) 
-    plt.xlabel('Intervalos de duraçção')
+    plt.xlabel('Intervalos de duração')
     plt.ylabel('Tamanho médio dos pacotes')
     plt.title('Tamanho médio dos pacotes em relação a duração - ' + NAME)
-    plt.savefig(PATH_GRAPHS + "/TamanhoMedioPacotesPorDuracapLinha.png")
+    plt.savefig(PATH_GRAPHS + "/TamanhoMedioPacotesPorDuracaoLinha.png")
 
-    # Gŕafico de barras
+    # Gráfico de barras
     plt.clf()
     plt.bar(duration_intervals, tamanho_medio, color="blue", width=(duration_intervals[1] - duration_intervals[0]) * 0.8)
     plt.xlabel('Intervalos de duração')
