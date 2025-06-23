@@ -54,7 +54,7 @@ BATCH_SIZE = 500000
 
 # Log formatado
 def log(message):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}", flush=True)
 
 # Atualiza ou insere um novo fluxo
 def atualizar_ou_inserir_fluxo(flow, result, offset):
@@ -93,7 +93,8 @@ with pymongo.MongoClient("mongodb://localhost:27017/") as mongo_client:
             continue
 
         actual_offset = REAL_OFFSETS[file_name]
-        log(f"\nProcessando {file_name} com offset real de {actual_offset}ms")
+        log(f'--' * 30)
+        log(f"Processando {file_name} com offset real de {actual_offset}ms")
         start_time = time.time()
 
         total_inserted = 0
@@ -136,6 +137,9 @@ with pymongo.MongoClient("mongodb://localhost:27017/") as mongo_client:
                     flow.start += actual_offset
                     bulk_operations.append(pymongo.InsertOne(flow.to_dict()))
 
+                if len(bulk_operations) % 50000 == 0:
+                    log(f"{len(bulk_operations)} operações acumuladas, enviando ao MongoDB...")
+
                 if len(bulk_operations) >= BATCH_SIZE:
                     collection.bulk_write(bulk_operations)
                     bulk_operations = []
@@ -151,4 +155,4 @@ with pymongo.MongoClient("mongodb://localhost:27017/") as mongo_client:
 
 # Gera gráficos
 log("Gerando gráficos com o GeraGraficosMongo.py...")
-subprocess.run(["python3", "-u", "./AvaliadorFluxo/GeraGraficosMongo.py"])
+subprocess.run(["python3", "-u", "./Processamento/GeraGraficosMongo.py"])
