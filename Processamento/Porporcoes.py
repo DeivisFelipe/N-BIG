@@ -24,10 +24,11 @@ os.makedirs(PATH_GRAPHS, exist_ok=True)
 today_str = datetime.now().strftime('%Y%m%d')
 
 # Hiperparâmetros (ajuste conforme necessidade)
-RATO_THRESHOLD = 45          # 1 KB
+RATO_THRESHOLD = 160          # 1 KB
 LIBELULA_THRESHOLD = 1000            # 1 segundo em ms
-CHITA_RATE_THRESHOLD = 10 * 1024 * 1024  # ex: 10 MB/s (bytes por segundo); ajuste conforme contexto
+CARACOL_RATE_THRESHOLD = 10 * 1024 * 1024  # ex: 10 MB/s (bytes por segundo); ajuste conforme contexto
                                          # lembre-se: taxa = nbytes_total / (duration/1000)
+MINIMUM_NPACKETS = 3  # mínimo de pacotes para considerar classificação
 
 # Conexão MongoDB
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -58,15 +59,15 @@ if res is None:
     raise RuntimeError("Coleção vazia ou erro ao agregar estatísticas.")
 elefante_thresh = res["avg_bytes"] + 3 * res["std_bytes"]
 tartaruga_thresh = res["avg_duration"] + 3 * res["std_duration"]
-caracol_thresh = res["avg_packets"] + 3 * res["std_packets"]
+chita_thresh = res["avg_packets"] + 3 * res["std_packets"]
 
 log("Thresholds calculados:")
 log(f"  Elefante ≥ {elefante_thresh:.2f} bytes; ")
 log(f"  Rato < {RATO_THRESHOLD} bytes; ")
 log(f"  Tartaruga ≥ {tartaruga_thresh:.2f} ms; ")
 log(f"  Libélula < {LIBELULA_THRESHOLD} ms; ")
-log(f"  Caracol ≥ {caracol_thresh:.2f} pacotes; ")
-log(f"  Chita ≥ taxa {CHITA_RATE_THRESHOLD} B/s")
+log(f"  Caracol < taxa {CARACOL_RATE_THRESHOLD} B/s; ")
+log(f"  Chita ≥ taxa {chita_thresh:.2f} B/s")
 log("Médias: ")
 log(f"  nbytes_total: {res['avg_bytes']:.2f} bytes")
 log(f"  duration: {res['avg_duration']:.2f} ms")
@@ -79,50 +80,68 @@ log(f"  npackets_total: {res['std_packets']:.2f} pacotes")
 # 2) Montar pipeline de agregação:
 pipeline = [
     # Project: manter campos e calcular taxa de transmissão em bytes/s
-    {"$project": {
-        "duration": 1,
-        "nbytes_total": 1,
-        "npackets_total": 1,
-        # taxa em bytes por segundo, evita divisão por zero:
-        "rate": {
-            "$cond": [
-                {"$gt": ["$duration", 0]},
-                {"$divide": ["$nbytes_total", {"$divide": ["$duration", 1000]}]}, 
-                0
-            ]
-        },
-        # classificação volume
-        "tipo_volume": {
-            "$switch": {
-                "branches": [
-                    {"case": {"$gte": ["$nbytes_total", elefante_thresh]}, "then": "Elefante"},
-                    {"case": {"$lt": ["$nbytes_total", RATO_THRESHOLD]}, "then": "Rato"},
-                ],
-                "default": "Normal"
-            }
-        },
-        # classificação duração
-        "tipo_duracao": {
-            "$switch": {
-                "branches": [
-                    {"case": {"$lt": ["$duration", LIBELULA_THRESHOLD]}, "then": "Libélula"},
-                    {"case": {"$gte": ["$duration", tartaruga_thresh]}, "then": "Tartaruga"},
-                ],
-                "default": "Normal"
-            }
-        },
-        # classificação pacotes/taxa
-        # Para Chita, usamos rate >= CHITA_RATE_THRESHOLD; para Caracol, npackets_total >= caracol_thresh
-        "tipo_pacote": {
-            "$switch": {
-                "branches": [
-                    {"case": {"$gte": ["$rate", CHITA_RATE_THRESHOLD]}, "then": "Chita"},
-                    {"case": {"$gte": ["$npackets_total", caracol_thresh]}, "then": "Caracol"},
-                ],
-                "default": "Normal"
+    {
+        "$project": {
+            "duration": 1,
+            "nbytes_total": 1,
+            "npackets_total": 1,
+            "rate": {
+                "$cond": [
+                    {"$gt": ["$duration", 0]},
+                    {"$divide": ["$nbytes_total", {"$divide": ["$duration", 1000]}]}, 
+                    0
+                ]
+            },
+            # classificação volume
+            "tipo_volume": {
+                "$cond": [
+                    {"$lt": ["$npackets_total", MINIMUM_NPACKETS]},
+                    "Normal",
+                    {
+                        "$switch": {
+                            "branches": [
+                                {"case": {"$gte": ["$nbytes_total", elefante_thresh]}, "then": "Elefante"},
+                                {"case": {"$lt": ["$nbytes_total", RATO_THRESHOLD]}, "then": "Rato"},
+                            ],
+                            "default": "Normal"
+                        }
+                    }
+                ]
+            },
+            # classificação duração
+            "tipo_duracao": {
+                "$cond": [
+                    {"$lt": ["$npackets_total", MINIMUM_NPACKETS]},
+                    "Normal",
+                    {
+                        "$switch": {
+                            "branches": [
+                                {"case": {"$lt": ["$duration", LIBELULA_THRESHOLD]}, "then": "Libélula"},
+                                {"case": {"$gte": ["$duration", tartaruga_thresh]}, "then": "Tartaruga"},
+                            ],
+                            "default": "Normal"
+                        }
+                    }
+                ]
+            },
+            # classificação pacotes/taxa
+            "tipo_pacote": {
+                "$cond": [
+                    {"$lt": ["$npackets_total", MINIMUM_NPACKETS]},
+                    "Normal",
+                    {
+                        "$switch": {
+                            "branches": [
+                                {"case": {"$gte": ["$rate", chita_thresh]}, "then": "Chita"},
+                                {"case": {"$gte": ["$rate", CARACOL_RATE_THRESHOLD]}, "then": "Caracol"},
+                            ],
+                            "default": "Normal"
+                        }
+                    }
+                ]
             }
         }
-    }},
+    },
     # Facet: obter contagens e médias por categoria
     {"$facet": {
         # total de fluxos
