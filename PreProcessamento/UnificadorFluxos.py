@@ -153,6 +153,4 @@ with pymongo.MongoClient("mongodb://localhost:27017/") as mongo_client:
         log(f"→ Fluxos inseridos: {total_inserted}")
         log(f"→ Fluxos atualizados: {total_updated}")
 
-# Gera gráficos
-log("Gerando gráficos com o GeraGraficosMongo.py...")
-subprocess.run(["python3", "-u", "./Processamento/GeraGraficosMongo.py"])
+log("Unificação de fluxos concluída.")
