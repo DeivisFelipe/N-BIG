@@ -48,7 +48,7 @@ collection = db[COLLECTION_NAME]
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
 
-# Estatísticas necessárias para os limiares
+# Estatísticas para cálculo de thresholds
 stats_project = {"_id": None}
 if "volume" in selecionados:
     stats_project.update({
@@ -156,10 +156,34 @@ if "taxa" in selecionados:
 facet = {"total_fluxos": [{"$count": "count"}]}
 if "volume" in selecionados:
     facet["contagem_volume"] = [{"$group": {"_id": "$tipo_volume", "count": {"$sum": 1}}}]
+    facet["medias_volume"] = [{
+        "$group": {
+            "_id": "$tipo_volume",
+            "media_duration": {"$avg": "$duration"},
+            "media_bytes": {"$avg": "$nbytes_total"},
+            "media_packets": {"$avg": "$npackets_total"},
+        }
+    }]
 if "duracao" in selecionados:
     facet["contagem_duracao"] = [{"$group": {"_id": "$tipo_duracao", "count": {"$sum": 1}}}]
+    facet["medias_duracao"] = [{
+        "$group": {
+            "_id": "$tipo_duracao",
+            "media_duration": {"$avg": "$duration"},
+            "media_bytes": {"$avg": "$nbytes_total"},
+            "media_packets": {"$avg": "$npackets_total"},
+        }
+    }]
 if "taxa" in selecionados:
     facet["contagem_taxa"] = [{"$group": {"_id": "$tipo_taxa", "count": {"$sum": 1}}}]
+    facet["medias_taxa"] = [{
+        "$group": {
+            "_id": "$tipo_taxa",
+            "media_duration": {"$avg": "$duration"},
+            "media_bytes": {"$avg": "$nbytes_total"},
+            "media_packets": {"$avg": "$npackets_total"},
+        }
+    }]
 
 pipeline = [
     {"$project": project},
@@ -184,25 +208,34 @@ def plot_pie(df, title, filename):
     plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_{filename}.png"))
     plt.close()
 
+# Contagens e médias para volume
 if "volume" in selecionados:
     df_volume = facet_to_df(result["contagem_volume"])
     df_volume.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Volume.csv"), index=False)
     plot_pie(df_volume[df_volume["Categoria"].isin(["Elefante", "Rato"])], f"Proporção Elefante/Rato - {NAME}", "Pie_Elefante_Rato")
     plot_pie(df_volume, f"Proporção Volume Total - {NAME}", "Pie_Volume_Todas")
+    df_medias_volume = facet_to_df(result.get("medias_volume", []))
+    df_medias_volume.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Volume.csv"), index=False)
     log("Geração de gráficos e CSV para volume concluída.")
 
+# Contagens e médias para duração
 if "duracao" in selecionados:
     df_duracao = facet_to_df(result["contagem_duracao"])
     df_duracao.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Duracao.csv"), index=False)
     plot_pie(df_duracao[df_duracao["Categoria"].isin(["Libélula", "Tartaruga"])], f"Proporção Libélula/Tartaruga - {NAME}", "Pie_Libelula_Tartaruga")
     plot_pie(df_duracao, f"Proporção Duração Total - {NAME}", "Pie_Duracao_Todas")
+    df_medias_duracao = facet_to_df(result.get("medias_duracao", []))
+    df_medias_duracao.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Duracao.csv"), index=False)
     log("Geração de gráficos e CSV para duração concluída.")
 
+# Contagens e médias para taxa
 if "taxa" in selecionados:
     df_taxa = facet_to_df(result["contagem_taxa"])
     df_taxa.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Taxa.csv"), index=False)
     plot_pie(df_taxa[df_taxa["Categoria"].isin(["Chita", "Caracol"])], f"Proporção Chita/Caracol - {NAME}", "Pie_Chita_Caracol")
     plot_pie(df_taxa, f"Proporção Taxa Total - {NAME}", "Pie_Taxa_Todas")
+    df_medias_taxa = facet_to_df(result.get("medias_taxa", []))
+    df_medias_taxa.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Taxa.csv"), index=False)
     log("Geração de gráficos e CSV concluída.")
 
 log("Processo concluído.")
