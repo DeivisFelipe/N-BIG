@@ -81,8 +81,7 @@ tartaruga_thresh = res.get("avg_duration", 0) + 3 * res.get("std_duration", 0)
 chita_thresh = res.get("avg_rate", 0) + 3 * res.get("std_rate", 0)
 CARACOL_RATE_THRESHOLD = res.get("avg_rate", 0) - res.get("std_rate", 0)  # Média menos 1 desvio padrão
 if CARACOL_RATE_THRESHOLD < 0:
-    CARACOL_RATE_THRESHOLD = 90 * 1024  # fallback para 92KB/s
-
+    CARACOL_RATE_THRESHOLD = 80 * 1024  # fallback para 92KB/s
 
 log("Thresholds calculados:")
 log(f"  Elefante ≥ {elefante_thresh:.2f} bytes; ")
@@ -199,46 +198,92 @@ result = list(collection.aggregate(pipeline))[0]
 def facet_to_df(facet_result):
     return pd.DataFrame(facet_result).rename(columns={"_id": "Categoria"}) if facet_result else pd.DataFrame(columns=["Categoria", "count"])
 
-total_fluxos = result["total_fluxos"][0]["count"] if result["total_fluxos"] else 0
-log(f"Total de fluxos: {total_fluxos}")
+def get_legend_text(selecao):
+    if selecao == "taxa":
+        return (f"Thresholds Taxa (B/s):\n"
+                f"Chita ≥ {chita_thresh:.0f}\n"
+                f"Caracol < {CARACOL_RATE_THRESHOLD:.0f}")
+    elif selecao == "volume":
+        return (f"Thresholds Volume (bytes):\n"
+                f"Elefante ≥ {elefante_thresh:.0f}\n"
+                f"Rato < {RATO_THRESHOLD}")
+    elif selecao == "duracao":
+        return (f"Thresholds Duração (ms):\n"
+                f"Tartaruga ≥ {tartaruga_thresh:.0f}\n"
+                f"Libélula < {LIBELULA_THRESHOLD}")
+    else:
+        return ""
 
-def plot_pie(df, title, filename):
+def plot_pie(df, title, filename, legend_text=None):
     if df.empty:
         return
     plt.figure(figsize=(6, 6))
-    plt.pie(df["count"], labels=df["Categoria"], autopct="%1.1f%%")
+    patches, texts, autotexts = plt.pie(df["count"], labels=df["Categoria"], autopct="%1.1f%%")
     plt.title(title)
+    if legend_text:
+        plt.legend(
+            patches,
+            df["Categoria"],
+            title=legend_text,
+            loc="upper left",
+            bbox_to_anchor=(1.05, 1)
+        )
+        plt.subplots_adjust(right=0.75)
+    else:
+        plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_{filename}.png"))
     plt.close()
+
+
+def plot_bar_means(df_means, title, filename):
+    if df_means.empty:
+        return
+    df_means = df_means.set_index("Categoria")
+    ax = df_means[["media_duration", "media_bytes", "media_packets"]].plot(kind="bar", figsize=(10,6))
+    ax.set_title(title)
+    ax.set_ylabel("Valores médios")
+    plt.xticks(rotation=0)
+    plt.tight_layout()
+    plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_{filename}.png"))
+    plt.close()
+
+total_fluxos = result["total_fluxos"][0]["count"] if result["total_fluxos"] else 0
+log(f"Total de fluxos: {total_fluxos}")
 
 # Contagens e médias para volume
 if "volume" in selecionados:
     df_volume = facet_to_df(result["contagem_volume"])
     df_volume.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Volume.csv"), index=False)
-    plot_pie(df_volume[df_volume["Categoria"].isin(["Elefante", "Rato"])], f"Proporção Elefante/Rato - {NAME}", "Pie_Elefante_Rato")
-    plot_pie(df_volume, f"Proporção Volume Total - {NAME}", "Pie_Volume_Todas")
+    plot_pie(df_volume[df_volume["Categoria"].isin(["Elefante", "Rato"])], 
+             f"Proporção Elefante/Rato - {NAME}", "Pie_Elefante_Rato", legend_text=get_legend_text("volume"))
+    plot_pie(df_volume, f"Proporção Volume Total - {NAME}", "Pie_Volume_Todas", legend_text=get_legend_text("volume"))
     df_medias_volume = facet_to_df(result.get("medias_volume", []))
     df_medias_volume.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Volume.csv"), index=False)
+    plot_bar_means(df_medias_volume, f"Médias por padrão de volume - {NAME}", "Bar_Medias_Volume")
     log("Geração de gráficos e CSV para volume concluída.")
 
 # Contagens e médias para duração
 if "duracao" in selecionados:
     df_duracao = facet_to_df(result["contagem_duracao"])
     df_duracao.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Duracao.csv"), index=False)
-    plot_pie(df_duracao[df_duracao["Categoria"].isin(["Libélula", "Tartaruga"])], f"Proporção Libélula/Tartaruga - {NAME}", "Pie_Libelula_Tartaruga")
-    plot_pie(df_duracao, f"Proporção Duração Total - {NAME}", "Pie_Duracao_Todas")
+    plot_pie(df_duracao[df_duracao["Categoria"].isin(["Libélula", "Tartaruga"])], 
+             f"Proporção Libélula/Tartaruga - {NAME}", "Pie_Libelula_Tartaruga", legend_text=get_legend_text("duracao"))
+    plot_pie(df_duracao, f"Proporção Duração Total - {NAME}", "Pie_Duracao_Todas", legend_text=get_legend_text("duracao"))
     df_medias_duracao = facet_to_df(result.get("medias_duracao", []))
     df_medias_duracao.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Duracao.csv"), index=False)
+    plot_bar_means(df_medias_duracao, f"Médias por padrão de duração - {NAME}", "Bar_Medias_Duracao")
     log("Geração de gráficos e CSV para duração concluída.")
 
 # Contagens e médias para taxa
 if "taxa" in selecionados:
     df_taxa = facet_to_df(result["contagem_taxa"])
     df_taxa.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Taxa.csv"), index=False)
-    plot_pie(df_taxa[df_taxa["Categoria"].isin(["Chita", "Caracol"])], f"Proporção Chita/Caracol - {NAME}", "Pie_Chita_Caracol")
-    plot_pie(df_taxa, f"Proporção Taxa Total - {NAME}", "Pie_Taxa_Todas")
+    plot_pie(df_taxa[df_taxa["Categoria"].isin(["Chita", "Caracol"])], 
+             f"Proporção Chita/Caracol - {NAME}", "Pie_Chita_Caracol", legend_text=get_legend_text("taxa"))
+    plot_pie(df_taxa, f"Proporção Taxa Total - {NAME}", "Pie_Taxa_Todas", legend_text=get_legend_text("taxa"))
     df_medias_taxa = facet_to_df(result.get("medias_taxa", []))
     df_medias_taxa.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Taxa.csv"), index=False)
+    plot_bar_means(df_medias_taxa, f"Médias por padrão de taxa - {NAME}", "Bar_Medias_Taxa")
     log("Geração de gráficos e CSV concluída.")
 
 log("Processo concluído.")
