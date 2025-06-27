@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 # Configurações gerais
-DATABASE = 2  # 1 para CAIDA, 2 para MAWI
+DATABASE = 1  # 1 para CAIDA, 2 para MAWI
 
 if DATABASE == 1:
     PATH_GRAPHS = "Saida/Graficos/AnaliseCaida"
@@ -73,15 +73,27 @@ if "taxa" in selecionados:
         ]}},
     })
 
-stats = collection.aggregate([{"$group": stats_project}])
+# Filtro para garantir taxa válida
+match_stage = {
+    "$match": {
+        "nbytes_total": {"$gt": 0},
+        "duration": {"$gt": 0}
+    }
+}
+
+stats = collection.aggregate([
+    match_stage,
+    {"$group": stats_project}
+])
 res = next(stats)
 
+# Cálculo de thresholds com base nos valores reais
 elefante_thresh = res.get("avg_bytes", 0) + 3 * res.get("std_bytes", 0)
 tartaruga_thresh = res.get("avg_duration", 0) + 3 * res.get("std_duration", 0)
-chita_thresh = 1000 * 1024  # 10 MB/s
-CARACOL_RATE_THRESHOLD = res.get("avg_rate", 0) - res.get("std_rate", 0)  # Média menos 1 desvio padrão
+chita_thresh = res.get("avg_rate", 0) + 3 * res.get("std_rate", 0)
+CARACOL_RATE_THRESHOLD = res.get("avg_rate", 0) - res.get("std_rate", 0)
 if CARACOL_RATE_THRESHOLD < 0:
-    CARACOL_RATE_THRESHOLD = 16 * 1024  # fallback para 92KB/s
+    CARACOL_RATE_THRESHOLD = 16 * 1024  # 16KB/s fallback
 
 log("Thresholds calculados:")
 log(f"  Elefante ≥ {elefante_thresh:.2f} bytes; ")
@@ -147,8 +159,8 @@ if "taxa" in selecionados:
             "Normal",
             {"$switch": {
                 "branches": [
-                    {"case": {"$gte": ["$rate", chita_thresh]}, "then": "Chita"},
                     {"case": {"$lt": ["$rate", CARACOL_RATE_THRESHOLD]}, "then": "Caracol"},
+                    {"case": {"$gte": ["$rate", chita_thresh]}, "then": "Chita"},
                 ],
                 "default": "Normal"
             }}
