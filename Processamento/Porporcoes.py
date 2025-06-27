@@ -36,9 +36,9 @@ selecionados = [mapa[o.strip()] for o in opcoes.split(",") if o.strip() in mapa]
 print("Classificações selecionadas:", ", ".join(selecionados), flush=True)
 
 # Hiperparâmetros (ajuste conforme necessidade)
-RATO_THRESHOLD = 163  # 160 bytes
+RATO_THRESHOLD = 163  # 163 bytes
 LIBELULA_THRESHOLD = 1000  # 1 segundo (em ms)
-CARACOL_RATE_THRESHOLD = 10 * 1024 * 1024  # 10 MB/s em bytes/s
+CARACOL_RATE_THRESHOLD = 3 * 1024 * 1024  # 1 MB/s em bytes/s
 MINIMUM_NPACKETS = 3  # mínimo de pacotes para considerar classificação
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")
