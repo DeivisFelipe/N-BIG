@@ -78,10 +78,10 @@ res = next(stats)
 
 elefante_thresh = res.get("avg_bytes", 0) + 3 * res.get("std_bytes", 0)
 tartaruga_thresh = res.get("avg_duration", 0) + 3 * res.get("std_duration", 0)
-chita_thresh = res.get("avg_rate", 0) + 3 * res.get("std_rate", 0)
+chita_thresh = 1000 * 1024  # 10 MB/s
 CARACOL_RATE_THRESHOLD = res.get("avg_rate", 0) - res.get("std_rate", 0)  # Média menos 1 desvio padrão
 if CARACOL_RATE_THRESHOLD < 0:
-    CARACOL_RATE_THRESHOLD = 80 * 1024  # fallback para 92KB/s
+    CARACOL_RATE_THRESHOLD = 16 * 1024  # fallback para 92KB/s
 
 log("Thresholds calculados:")
 log(f"  Elefante ≥ {elefante_thresh:.2f} bytes; ")
@@ -184,6 +184,7 @@ if "taxa" in selecionados:
             "media_duration": {"$avg": "$duration"},
             "media_bytes": {"$avg": "$nbytes_total"},
             "media_packets": {"$avg": "$npackets_total"},
+            "media_rate": {"$avg": "$rate"},
         }
     }]
 
@@ -217,7 +218,7 @@ def get_legend_text(selecao):
 def plot_pie(df, title, filename, legend_text=None):
     if df.empty:
         return
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(9, 6))
     patches, texts, autotexts = plt.pie(df["count"], labels=df["Categoria"], autopct="%1.1f%%")
     plt.title(title)
     if legend_text:
@@ -234,14 +235,13 @@ def plot_pie(df, title, filename, legend_text=None):
     plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_{filename}.png"))
     plt.close()
 
-
-def plot_bar_means(df_means, title, filename):
-    if df_means.empty:
+def plot_single_bar(df_means, title, filename, column, ylabel):
+    if df_means.empty or column not in df_means.columns:
         return
     df_means = df_means.set_index("Categoria")
-    ax = df_means[["media_duration", "media_bytes", "media_packets"]].plot(kind="bar", figsize=(10,6))
+    ax = df_means[[column]].plot(kind="bar", figsize=(10,6), legend=False)
     ax.set_title(title)
-    ax.set_ylabel("Valores médios")
+    ax.set_ylabel(ylabel)
     plt.xticks(rotation=0)
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_{filename}.png"))
@@ -250,40 +250,59 @@ def plot_bar_means(df_means, title, filename):
 total_fluxos = result["total_fluxos"][0]["count"] if result["total_fluxos"] else 0
 log(f"Total de fluxos: {total_fluxos}")
 
-# Contagens e médias para volume
+# Volume
 if "volume" in selecionados:
     df_volume = facet_to_df(result["contagem_volume"])
     df_volume.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Volume.csv"), index=False)
-    plot_pie(df_volume[df_volume["Categoria"].isin(["Elefante", "Rato"])], 
+    plot_pie(df_volume[df_volume["Categoria"].isin(["Elefante", "Rato"])],
              f"Proporção Elefante/Rato - {NAME}", "Pie_Elefante_Rato", legend_text=get_legend_text("volume"))
     plot_pie(df_volume, f"Proporção Volume Total - {NAME}", "Pie_Volume_Todas", legend_text=get_legend_text("volume"))
+
     df_medias_volume = facet_to_df(result.get("medias_volume", []))
     df_medias_volume.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Volume.csv"), index=False)
-    plot_bar_means(df_medias_volume, f"Médias por padrão de volume - {NAME}", "Bar_Medias_Volume")
+
+    plot_single_bar(df_medias_volume, f"Média de Volume (bytes) por padrão - {NAME}", "Bar_Medias_Volume", "media_bytes", "Bytes")
+    plot_single_bar(df_medias_volume, f"Média de Duração (ms) por padrão - {NAME}", "Bar_Medias_Duracao_Volume", "media_duration", "Milissegundos")
+    plot_single_bar(df_medias_volume, f"Média de Pacotes por padrão - {NAME}", "Bar_Medias_Pacotes_Volume", "media_packets", "Pacotes")
     log("Geração de gráficos e CSV para volume concluída.")
 
-# Contagens e médias para duração
+# Duração
 if "duracao" in selecionados:
     df_duracao = facet_to_df(result["contagem_duracao"])
     df_duracao.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Duracao.csv"), index=False)
-    plot_pie(df_duracao[df_duracao["Categoria"].isin(["Libélula", "Tartaruga"])], 
+    plot_pie(df_duracao[df_duracao["Categoria"].isin(["Libélula", "Tartaruga"])],
              f"Proporção Libélula/Tartaruga - {NAME}", "Pie_Libelula_Tartaruga", legend_text=get_legend_text("duracao"))
     plot_pie(df_duracao, f"Proporção Duração Total - {NAME}", "Pie_Duracao_Todas", legend_text=get_legend_text("duracao"))
+
     df_medias_duracao = facet_to_df(result.get("medias_duracao", []))
     df_medias_duracao.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Duracao.csv"), index=False)
-    plot_bar_means(df_medias_duracao, f"Médias por padrão de duração - {NAME}", "Bar_Medias_Duracao")
+
+    plot_single_bar(df_medias_duracao, f"Média de Duração (ms) por padrão - {NAME}", "Bar_Medias_Duracao", "media_duration", "Milissegundos")
+    plot_single_bar(df_medias_duracao, f"Média de Volume (bytes) por padrão - {NAME}", "Bar_Medias_Volume_Duracao", "media_bytes", "Bytes")
+    plot_single_bar(df_medias_duracao, f"Média de Pacotes por padrão - {NAME}", "Bar_Medias_Pacotes_Duracao", "media_packets", "Pacotes")
     log("Geração de gráficos e CSV para duração concluída.")
 
-# Contagens e médias para taxa
+# Taxa
 if "taxa" in selecionados:
     df_taxa = facet_to_df(result["contagem_taxa"])
     df_taxa.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Contagem_Taxa.csv"), index=False)
-    plot_pie(df_taxa[df_taxa["Categoria"].isin(["Chita", "Caracol"])], 
+    plot_pie(df_taxa[df_taxa["Categoria"].isin(["Chita", "Caracol"])],
              f"Proporção Chita/Caracol - {NAME}", "Pie_Chita_Caracol", legend_text=get_legend_text("taxa"))
     plot_pie(df_taxa, f"Proporção Taxa Total - {NAME}", "Pie_Taxa_Todas", legend_text=get_legend_text("taxa"))
+
     df_medias_taxa = facet_to_df(result.get("medias_taxa", []))
     df_medias_taxa.to_csv(os.path.join(PATH_GRAPHS, f"{today_str}_Medias_Taxa.csv"), index=False)
-    plot_bar_means(df_medias_taxa, f"Médias por padrão de taxa - {NAME}", "Bar_Medias_Taxa")
-    log("Geração de gráficos e CSV concluída.")
+
+    # Converter taxa para KB/s para melhor visualização
+    if not df_medias_taxa.empty and "media_rate" in df_medias_taxa.columns:
+        df_medias_taxa["media_rate_kbps"] = df_medias_taxa["media_rate"] / 1024
+    else:
+        df_medias_taxa["media_rate_kbps"] = pd.Series(dtype=float)
+
+    plot_single_bar(df_medias_taxa, f"Média de Taxa (B/s) por padrão - {NAME}", "Bar_Medias_Taxa", "media_rate", "Bytes por segundo (B/s)")
+    plot_single_bar(df_medias_taxa, f"Média de Taxa (KB/s) por padrão - {NAME}", "Bar_Medias_Taxa_KBps", "media_rate_kbps", "Kilobytes por segundo (KB/s)")
+    plot_single_bar(df_medias_taxa, f"Média de Duração (ms) por padrão - {NAME}", "Bar_Medias_Duracao_Taxa", "media_duration", "Milissegundos")
+    plot_single_bar(df_medias_taxa, f"Média de Pacotes por padrão - {NAME}", "Bar_Medias_Pacotes_Taxa", "media_packets", "Pacotes")
+    log("Geração de gráficos e CSV para taxa concluída.")
 
 log("Processo concluído.")
