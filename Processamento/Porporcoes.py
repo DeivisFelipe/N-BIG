@@ -9,12 +9,12 @@ DATABASE = 2  # 1 para CAIDA, 2 para MAWI
 
 if DATABASE == 1:
     PATH_GRAPHS = "Saida/Graficos/AnaliseCaida"
-    NAME = "CAIDA MongoDB"
+    NAME = "CAIDA 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "caida_collection"
 elif DATABASE == 2:
     PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI"
-    NAME = "MAWI MongoDB"
+    NAME = "MAWI 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
 else:
@@ -36,7 +36,7 @@ selecionados = [mapa[o.strip()] for o in opcoes.split(",") if o.strip() in mapa]
 print("Classificações selecionadas:", ", ".join(selecionados), flush=True)
 
 # Hiperparâmetros (ajuste conforme necessidade)
-RATO_THRESHOLD = 163  # 163 bytes
+RATO_THRESHOLD = 130  # 130 bytes
 LIBELULA_THRESHOLD = 1000  # 1 segundo (em ms)
 MINIMUM_NPACKETS = 3  # mínimo de pacotes para considerar classificação
 
@@ -73,16 +73,7 @@ if "taxa" in selecionados:
         ]}},
     })
 
-# Filtro para garantir taxa válida
-match_stage = {
-    "$match": {
-        "nbytes_total": {"$gt": 0},
-        "duration": {"$gt": 0}
-    }
-}
-
 stats = collection.aggregate([
-    match_stage,
     {"$group": stats_project}
 ])
 res = next(stats)
