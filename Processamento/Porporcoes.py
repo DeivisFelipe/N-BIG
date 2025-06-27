@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 # Configurações gerais
-DATABASE = 1  # 1 para CAIDA, 2 para MAWI
+DATABASE = 2  # 1 para CAIDA, 2 para MAWI
 
 if DATABASE == 1:
     PATH_GRAPHS = "Saida/Graficos/AnaliseCaida"
@@ -93,7 +93,7 @@ tartaruga_thresh = res.get("avg_duration", 0) + 3 * res.get("std_duration", 0)
 chita_thresh = res.get("avg_rate", 0) + 3 * res.get("std_rate", 0)
 CARACOL_RATE_THRESHOLD = res.get("avg_rate", 0) - res.get("std_rate", 0)
 if CARACOL_RATE_THRESHOLD < 0:
-    CARACOL_RATE_THRESHOLD = 1 * 1024  # 16KB/s fallback
+    CARACOL_RATE_THRESHOLD = 150  # 16KB/s fallback
 
 log("Thresholds calculados:")
 log(f"  Elefante ≥ {elefante_thresh:.2f} bytes; ")
