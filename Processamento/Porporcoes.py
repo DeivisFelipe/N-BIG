@@ -159,8 +159,32 @@ if "taxa" in selecionados:
             "Normal",
             {"$switch": {
                 "branches": [
-                    {"case": {"$lt": ["$rate", CARACOL_RATE_THRESHOLD]}, "then": "Caracol"},
-                    {"case": {"$gte": ["$rate", chita_thresh]}, "then": "Chita"},
+                    {
+                        "case": 
+                        {
+                            "$lt": [
+                                {
+                                    "$cond": [
+                                        {"$gt": ["$duration", 0]},
+                                        {"$divide": ["$nbytes_total", {"$divide": ["$duration", 1000]}]},
+                                        0
+                                    ]
+                                }, CARACOL_RATE_THRESHOLD
+                            ]
+                        }, "then": "Caracol"},
+                    {
+                        "case": 
+                        {
+                            "$gte": [
+                                {
+                                    "$cond": [
+                                        {"$gt": ["$duration", 0]},
+                                        {"$divide": ["$nbytes_total", {"$divide": ["$duration", 1000]}]},
+                                        0
+                                    ]
+                                }, chita_thresh
+                            ]
+                        }, "then": "Chita"},
                 ],
                 "default": "Normal"
             }}
