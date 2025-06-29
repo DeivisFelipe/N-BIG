@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 # Configurações gerais
-DATABASE = 2  # 1 para CAIDA, 2 para MAWI
+DATABASE = 2  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
 
 if DATABASE == 1:
     PATH_GRAPHS = "Saida/Graficos/AnaliseCaida"
@@ -17,8 +17,13 @@ elif DATABASE == 2:
     NAME = "MAWI 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
+elif DATABASE == 3:
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2025"
+    NAME = "MAWI 2025"
+    DB_NAME = "fluxos_database"
+    COLLECTION_NAME = "mawi2025_collection"
 else:
-    raise ValueError("Banco de dados inválido. Use 1 para CAIDA ou 2 para MAWI.")
+    raise ValueError("Banco de dados inválido. Use 1 para CAIDA, 2 para MAWI 2019 ou 3 para MAWI 2025.")
 
 os.makedirs(PATH_GRAPHS, exist_ok=True)
 today_str = datetime.now().strftime('%Y%m%d')

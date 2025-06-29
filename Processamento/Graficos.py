@@ -9,21 +9,21 @@ DATABASE = 3  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
 
 if DATABASE == 2:
     PATH_GRAPHS = "/Saida/Graficos/AnaliseCaida/GraficosRelacoes"
-    NAME = "CAIDA"
+    NAME = "CAIDA 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "caida_collection"
 elif DATABASE == 2:
     PATH_GRAPHS = "/Saida/Graficos/AnaliseMAWI/GraficosRelacoes"
-    NAME = "MAWI"
+    NAME = "MAWI 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
 elif DATABASE == 3:
-    PATH_GRAPHS = "/Saida/Graficos/AnaliseMAWI2019/GraficosRelacoes"
+    PATH_GRAPHS = "/Saida/Graficos/AnaliseMAWI2025/GraficosRelacoes"
     NAME = "MAWI 2025"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi2025_collection"
 else:
-    raise ValueError("Banco de dados inválido.")
+    raise ValueError("Banco de dados inválido. Use 1 para CAIDA, 2 para MAWI 2019 ou 3 para MAWI 2025.")
 
 NUMBER_BINS = 60
 print(os.makedirs(PATH_GRAPHS, exist_ok=True))
