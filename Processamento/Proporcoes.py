@@ -5,7 +5,7 @@ import pandas as pd
 import os
 
 # Configurações gerais
-DATABASE = 2  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
+DATABASE = 3  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
 
 if DATABASE == 1:
     PATH_GRAPHS = "Saida/Graficos/AnaliseCaida/Porporcoes"
