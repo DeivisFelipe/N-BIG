@@ -5,23 +5,23 @@ import os
 import time
 
 # Configurações
-DATABASE = 2  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2019
+DATABASE = 3  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
 
 if DATABASE == 2:
-    PATH_GRAPHS = "./Saida/Graficos/AnaliseCaida/GraficosRelacoes"
+    PATH_GRAPHS = "/Saida/Graficos/AnaliseCaida/GraficosRelacoes"
     NAME = "CAIDA"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "caida_collection"
 elif DATABASE == 2:
-    PATH_GRAPHS = "./Saida/Graficos/AnaliseMAWI/GraficosRelacoes"
+    PATH_GRAPHS = "/Saida/Graficos/AnaliseMAWI/GraficosRelacoes"
     NAME = "MAWI"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
 elif DATABASE == 3:
-    PATH_GRAPHS = "./Saida/Graficos/AnaliseMAWI2019/GraficosRelacoes"
-    NAME = "MAWI 2019"
+    PATH_GRAPHS = "/Saida/Graficos/AnaliseMAWI2019/GraficosRelacoes"
+    NAME = "MAWI 2025"
     DB_NAME = "fluxos_database"
-    COLLECTION_NAME = "mawi2019_collection"
+    COLLECTION_NAME = "mawi2025_collection"
 else:
     raise ValueError("Banco de dados inválido.")
 
