@@ -16,7 +16,7 @@ mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
 
 db = mongo_client["fluxos_database"] # Cria a base de dados "fluxos_database" se ela não existir
 
-collection = db["mawi2019_collection"] # Cria a coleção "mawi2019_collection" se ela não existir
+collection = db["mawi2025_collection"] # Cria a coleção "mawi2025_collection" se ela não existir
 
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
