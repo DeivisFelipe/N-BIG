@@ -6,20 +6,26 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Configurações
-DATABASE = 1 # 1 para CAIDA, 2 para MAWI
+DATABASE = 1 # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2019
 
 if DATABASE == 1:
     PATH_GRAPHS = "Saida/Graficos/AnaliseCaida"
-    NAME = "CAIDA MongoDB"
+    NAME = "CAIDA"
     NUMBER_BINS_HISTOGRAMA = 60
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "caida_collection"
 elif DATABASE == 2:
     PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI"
-    NAME = "MAWI MongoDB"
+    NAME = "MAWI"
     NUMBER_BINS_HISTOGRAMA = 60
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
+elif DATABASE == 3:
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2019"
+    NAME = "MAWI 2019"
+    NUMBER_BINS_HISTOGRAMA = 60
+    DB_NAME = "fluxos_database"
+    COLLECTION_NAME = "mawi2019_collection"
 else:
     raise ValueError("Banco de dados inválido. Use 1 para CAIDA ou 2 para MAWI.")
 
