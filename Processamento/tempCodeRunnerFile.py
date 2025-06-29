@@ -1,1 +1,0 @@
-AnaliseMAWI2019
