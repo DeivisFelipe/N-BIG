@@ -1,182 +1,173 @@
 from datetime import datetime
 import matplotlib.pyplot as plt
 import pymongo
+import os
 import time
-import sys
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Configurações
-DATABASE = 3 # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2019
+DATABASE = 1  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2019
 
 if DATABASE == 1:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseCaida"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseCaida/GraficosRelacoes"
     NAME = "CAIDA"
-    NUMBER_BINS_HISTOGRAMA = 60
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "caida_collection"
 elif DATABASE == 2:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI/GraficosRelacoes"
     NAME = "MAWI"
-    NUMBER_BINS_HISTOGRAMA = 60
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
 elif DATABASE == 3:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2019"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2019/GraficosRelacoes"
     NAME = "MAWI 2019"
-    NUMBER_BINS_HISTOGRAMA = 60
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi2019_collection"
 else:
-    raise ValueError("Banco de dados inválido. Use 1 para CAIDA ou 2 para MAWI.")
+    raise ValueError("Banco de dados inválido.")
+
+NUMBER_BINS = 60
+os.makedirs(PATH_GRAPHS, exist_ok=True)
 
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
 
 def main():
-    # Conecta ao MongoDB
-    mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
-    db = mongo_client[DB_NAME]
-    collection = db[COLLECTION_NAME]
+    log("Conectando ao MongoDB...")
+    client = pymongo.MongoClient("mongodb://localhost:27017/")
+    collection = client[DB_NAME][COLLECTION_NAME]
 
-    # Pega o maior e o menor tempo de duracao e a maior e a menor quantidade de bytes usando queries
-    bigger_duration = collection.find_one(sort=[("duration", pymongo.DESCENDING)])["duration"]
-    smaller_duration = collection.find_one(sort=[("duration", pymongo.ASCENDING)])["duration"]
-    bigger_bytes = collection.find_one(sort=[("nbytes_total", pymongo.DESCENDING)])["nbytes_total"]
-    smaller_bytes = collection.find_one(sort=[("nbytes_total", pymongo.ASCENDING)])["nbytes_total"]
+    log("Calculando histogramas de duração...")
+    generate_duration_histograms(collection)
 
-    log(f"Maior duração: {bigger_duration}")
-    log(f"Menor duração: {smaller_duration}")
-    log(f"Maior quantidade de bytes: {bigger_bytes}")
-    log(f"Menor quantidade de bytes: {smaller_bytes}")
+    log("Histogramas de duração finalizados.")
+    log("Calculando histogramas de volume...")
+    generate_volume_histograms(collection)
 
-    # Gera os intervalos de duracao e bytes
-    duration_interval = (bigger_duration - smaller_duration) / NUMBER_BINS_HISTOGRAMA
-    duration_intervals = []
-    for i in range(NUMBER_BINS_HISTOGRAMA):
-        duration_intervals.append(round(smaller_duration + i * duration_interval))
+    log("Todos os gráficos foram gerados com sucesso.")
 
-    bytes_interval = (bigger_bytes - smaller_bytes) / NUMBER_BINS_HISTOGRAMA
-    bytes_intervals = []
-    for i in range(NUMBER_BINS_HISTOGRAMA):
-        bytes_intervals.append(round(smaller_bytes + i * bytes_interval))
+def generate_duration_histograms(collection):
+    min_dur = collection.find_one(sort=[("duration", 1)])["duration"]
+    max_dur = collection.find_one(sort=[("duration", -1)])["duration"]
+    step = (max_dur - min_dur) / NUMBER_BINS
 
-    # Contadores
-    flows_by_duration_counters = [0 for i in range(NUMBER_BINS_HISTOGRAMA)]
-    flows_by_bytes_counters = [0 for i in range(NUMBER_BINS_HISTOGRAMA)]
-    packets_by_duration_counters = [0 for i in range(NUMBER_BINS_HISTOGRAMA)]
-    total_bytes_by_duration_counters = [0 for i in range(NUMBER_BINS_HISTOGRAMA)]
+    pipeline = [
+        {
+            "$bucket": {
+                "groupBy": "$duration",
+                "boundaries": [min_dur + i * step for i in range(NUMBER_BINS)] + [max_dur + 1],
+                "default": "out_of_range",
+                "output": {
+                    "count": {"$sum": 1},
+                    "total_packets": {"$sum": "$npackets_total"},
+                    "total_bytes": {"$sum": "$nbytes_total"},
+                }
+            }
+        }
+    ]
 
-    duration_histogram(collection, duration_intervals, flows_by_duration_counters, packets_by_duration_counters, total_bytes_by_duration_counters)
-    bytes_histogram(collection, bytes_intervals, flows_by_bytes_counters)
-    average_packet_size_by_duration_histogram(duration_intervals, packets_by_duration_counters, total_bytes_by_duration_counters)
+    buckets = list(collection.aggregate(pipeline))
 
-# Graficos
+    centers = [round(min_dur + (i + 0.5) * step) for i in range(NUMBER_BINS)]
+    counts = []
+    avg_pkt_size = []
 
-# Histograma de duracao dos fluxos
-def duration_histogram(collection, duration_intervals, flows_by_duration_counters, packets_by_duration_counters, total_bytes_by_duration_counters):
-    log("*" * 50)
-    log("Gerando histograma de duração dos fluxos...")
-    for i in range(NUMBER_BINS_HISTOGRAMA):
-        if i == NUMBER_BINS_HISTOGRAMA - 1:
-            query = {"duration": {"$gte": duration_intervals[i]}}
-        else:
-            query = {"duration": {"$gte": duration_intervals[i], "$lt": duration_intervals[i + 1]}}
-        flows_by_duration_counters[i] = collection.count_documents(query)
+    for b in buckets:
+        count = b["count"]
+        total_packets = b["total_packets"]
+        total_bytes = b["total_bytes"]
+        counts.append(count)
+        avg_pkt_size.append(total_bytes / total_packets if total_packets else 0)
 
-        # Conta a quantidade de pacotes e bytes
-        # Verifique se ha resultado antes de acessar
-        result = collection.aggregate([
-            {"$match": query},
-            {"$group": {"_id": None, "total_packets": {"$sum": "$npackets_total"}, "total_bytes": {"$sum": "$nbytes_total"}}}
-        ])
-        result = next(result, None)
-        if result:
-            packets_by_duration_counters[i] = result["total_packets"]
-            total_bytes_by_duration_counters[i] = result["total_bytes"]
-        else:
-            packets_by_duration_counters[i] = 0
-            total_bytes_by_duration_counters[i] = 0
-
-    # Grafico de linha
+    log("Gerando gráfico de linha - Número de fluxos por duração...")
     plt.figure(figsize=(10, 5))
-    plt.plot(duration_intervals, flows_by_duration_counters)
-    plt.xlabel('Intervalos de duração')
-    plt.ylabel('Quantidade de fluxos')
-    plt.title('Quantidade de fluxos por duração - ' + NAME)
-    plt.savefig(PATH_GRAPHS + "/NumeroDeFluxosPorDuracaoLinha.png")
+    plt.plot(centers, counts)
+    plt.xlabel("Duração (ms)")
+    plt.ylabel("Quantidade de fluxos")
+    plt.title("Quantidade de fluxos por duração - " + NAME)
+    plt.savefig(f"{PATH_GRAPHS}/NumeroDeFluxosPorDuracaoLinha.png")
+    plt.close()
 
-    # Gŕafico de barras
+    log("Gerando gráfico de barras - Número de fluxos por duração...")
     plt.figure(figsize=(10, 5))
-    plt.bar(duration_intervals, flows_by_duration_counters, color="blue", width=(duration_intervals[1] - duration_intervals[0]) * 0.8)
-    plt.xlabel('Intervalos de duração')
-    plt.ylabel('Quantidade de fluxos')
-    plt.title('Quantidade de fluxos por duração - ' + NAME)
-    plt.savefig(PATH_GRAPHS + "/NumeroDeFluxosPorDuracaoBarra.png")
-    log("Quantidade de fluxos por duracao gerado com sucesso!")
+    plt.bar(centers, counts, width=step * 0.8, color='blue')
+    plt.xlabel("Duração (ms)")
+    plt.ylabel("Quantidade de fluxos")
+    plt.title("Quantidade de fluxos por duração - " + NAME)
+    plt.savefig(f"{PATH_GRAPHS}/NumeroDeFluxosPorDuracaoBarra.png")
+    plt.close()
 
-def bytes_histogram(collection, bytes_intervals, flows_by_bytes_counters):
-    log("*" * 50)
-    log("Gerando histograma de bytes dos fluxos...")
-    for i in range(NUMBER_BINS_HISTOGRAMA):
-        if i == NUMBER_BINS_HISTOGRAMA - 1:
-            query = {"nbytes_total": {"$gte": bytes_intervals[i]}}
-        else:
-            query = {"nbytes_total": {"$gte": bytes_intervals[i], "$lt": bytes_intervals[i + 1]}}
-        flows_by_bytes_counters[i] = collection.count_documents(query)
-
-    # Grafico de linha
+    log("Gerando gráfico de linha - Tamanho médio dos pacotes por duração...")
     plt.figure(figsize=(10, 5))
-    plt.plot(bytes_intervals, flows_by_bytes_counters)
-    plt.yscale('log')
-    plt.xlabel('Intervalos de bytes')
-    plt.ylabel('Quantidade de fluxos')
-    plt.title('Quantidade de fluxos por bytes - ' + NAME)
-    plt.savefig(PATH_GRAPHS + "/NumeroFluxosPorBytesLinha.png")
+    plt.plot(centers, avg_pkt_size)
+    plt.xlabel("Duração (ms)")
+    plt.ylabel("Tamanho médio de pacote (bytes)")
+    plt.title("Tamanho médio dos pacotes por duração - " + NAME)
+    plt.savefig(f"{PATH_GRAPHS}/TamanhoMedioPacotesPorDuracaoLinha.png")
+    plt.close()
 
-    # Grafico de barra
+    log("Gerando gráfico de barras - Tamanho médio dos pacotes por duração...")
     plt.figure(figsize=(10, 5))
-    plt.bar(bytes_intervals, flows_by_bytes_counters, color="blue", width=(bytes_intervals[1] - bytes_intervals[0]) * 0.8)
-    plt.yscale('log')
-    plt.xlabel('Intervalos de bytes')
-    plt.ylabel('Quantidade de fluxos')
-    plt.title('Quantidade de fluxos por bytes - ' + NAME)
-    plt.savefig(PATH_GRAPHS + "/NumeroFluxosPorBytesBarras.png")
-    log("Quantidade de fluxos por bytes gerado com sucesso!")
+    plt.bar(centers, avg_pkt_size, width=step * 0.8, color='blue')
+    plt.xlabel("Duração (ms)")
+    plt.ylabel("Tamanho médio de pacote (bytes)")
+    plt.title("Tamanho médio dos pacotes por duração - " + NAME)
+    plt.savefig(f"{PATH_GRAPHS}/TamanhoMedioPacotesPorDuracaoBarra.png")
+    plt.close()
 
-def average_packet_size_by_duration_histogram(duration_intervals, packets_by_duration_counters, total_bytes_by_duration_counters):
-    log("*" * 50)
-    log("Gerando histograma de tamanho médio dos pacotes por duração...")
-    tamanho_medio = []
-    for i in range(NUMBER_BINS_HISTOGRAMA):
-        if packets_by_duration_counters[i] != 0:
-            tamanho_medio.append(total_bytes_by_duration_counters[i] / packets_by_duration_counters[i])
-        else:
-            tamanho_medio.append(0)
+def generate_volume_histograms(collection):
+    min_bytes = collection.find_one(sort=[("nbytes_total", 1)])["nbytes_total"]
+    max_bytes = collection.find_one(sort=[("nbytes_total", -1)])["nbytes_total"]
+    step = (max_bytes - min_bytes) / NUMBER_BINS
 
-    # Gráfico de linha
-    plt.clf()
-    plt.plot(duration_intervals, tamanho_medio) 
-    plt.xlabel('Intervalos de duração')
-    plt.ylabel('Tamanho médio dos pacotes')
-    plt.title('Tamanho médio dos pacotes em relação a duração - ' + NAME)
-    plt.savefig(PATH_GRAPHS + "/TamanhoMedioPacotesPorDuracaoLinha.png")
+    boundaries = [min_bytes + i * step for i in range(NUMBER_BINS)] + [max_bytes + 1]
+    centers = [round(min_bytes + (i + 0.5) * step) for i in range(NUMBER_BINS)]
+    counts = [0] * NUMBER_BINS  # Inicializa todos os buckets com zero
 
-    # Gráfico de barras
-    plt.clf()
-    plt.bar(duration_intervals, tamanho_medio, color="blue", width=(duration_intervals[1] - duration_intervals[0]) * 0.8)
-    plt.xlabel('Intervalos de duração')
-    plt.ylabel('Tamanho médio dos pacotes')
-    plt.title('Tamanho médio dos pacotes em relação a duração - ' + NAME)
-    plt.savefig(PATH_GRAPHS + "/TamanhoMedioPacotesPorDuracaoBarra.png")
-    log("Histograma de tamanho médio dos pacotes por duração gerado com sucesso!")
+    pipeline = [
+        {
+            "$bucket": {
+                "groupBy": "$nbytes_total",
+                "boundaries": boundaries,
+                "default": "out_of_range",
+                "output": {"count": {"$sum": 1}}
+            }
+        }
+    ]
 
-if __name__ == '__main__':
-    start_time = time.time()
-    log("Iniciando a geração dos graficos...")
+    buckets = list(collection.aggregate(pipeline))
+
+    # Preenche os counts com base na posição correta de cada bucket
+    for i, bucket in enumerate(buckets):
+        if bucket["_id"] != "out_of_range":
+            index = boundaries.index(bucket["_id"])
+            if index < NUMBER_BINS:
+                counts[index] = bucket["count"]
+
+    log("Gerando gráfico de linha - Fluxos por volume...")
+    plt.figure(figsize=(10, 5))
+    plt.plot(centers, counts)
+    plt.yscale("log")
+    plt.xlabel("Volume de dados (bytes)")
+    plt.ylabel("Quantidade de fluxos")
+    plt.title("Quantidade de fluxos por volume - " + NAME)
+    plt.savefig(f"{PATH_GRAPHS}/NumeroFluxosPorBytesLinha.png")
+    plt.close()
+
+    log("Gerando gráfico de barras - Fluxos por volume...")
+    plt.figure(figsize=(10, 5))
+    plt.bar(centers, counts, width=step * 0.8, color='blue')
+    plt.yscale("log")
+    plt.xlabel("Volume de dados (bytes)")
+    plt.ylabel("Quantidade de fluxos")
+    plt.title("Quantidade de fluxos por volume - " + NAME)
+    plt.savefig(f"{PATH_GRAPHS}/NumeroFluxosPorBytesBarras.png")
+    plt.close()
+
+if __name__ == "__main__":
+    start = time.time()
+    log("Iniciando a geração dos gráficos...")
     log("=" * 50)
     main()
     log("=" * 50)
-    end_time = time.time()
-    execution_time = end_time - start_time
-    log(f"Tempo de execução: {execution_time} segundos.")
+    log(f"Tempo total: {round(time.time() - start, 2)} segundos.")
+    log("Processamento concluído.")
