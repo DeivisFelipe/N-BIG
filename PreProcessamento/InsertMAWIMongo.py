@@ -9,13 +9,27 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 PERMITIR_IPV6 = True
 BATCH_SIZE = 1000000
 
-file_name = "../large-pcap-analyzer/caidateste.txt"
+file_name = "./Datasets/Fluxos/MAWI2019/mawi2019.txt"
 
 mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
 
 db = mongo_client["fluxos_database"] # Cria a base de dados "fluxos_database" se ela não existir
 
-collection = db["mawi_collection"] # Cria a coleção "mawi_collection" se ela não existir
+collection = db["mawi2019_collection"] # Cria a coleção "mawi2019_collection" se ela não existir
+
+# Verifica se a coleção tem algum dado, se tiver mostra uma mensagem e cancela a exec
+if collection.count_documents({}) > 0:
+    print("A coleção já possui dados")
+
+    # Pergunta se deseja limpar a coleção
+    resposta = input("Deseja limpar a coleção? (s/n): ").strip().lower()
+    if resposta == 's':
+        collection.drop()  # Limpa a coleção
+        print("Coleção limpa.")
+    else:
+        print("A execução foi cancelada.")
+        mongo_client.close()
+        exit()
 
 # Pega o tempo inicial
 start_time = time.time()
@@ -60,3 +74,4 @@ final_time = time.time()
 execution_time = final_time - start_time
 
 print(f"Tempo de execução: {execution_time} segundos")
+print(f"Tamanho da coleção: {collection.count_documents({})} documentos")
