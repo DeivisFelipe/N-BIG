@@ -6,7 +6,7 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Configurações
-DATABASE = 1 # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2019
+DATABASE = 3 # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2019
 
 if DATABASE == 1:
     PATH_GRAPHS = "Saida/Graficos/AnaliseCaida"
