@@ -8,17 +8,17 @@ import os
 DATABASE = 2  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
 
 if DATABASE == 1:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseCaida"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseCaida/Porporcoes"
     NAME = "CAIDA 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "caida_collection"
 elif DATABASE == 2:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI/Porporcoes"
     NAME = "MAWI 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
 elif DATABASE == 3:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2025"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2025/Porporcoes"
     NAME = "MAWI 2025"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi2025_collection"

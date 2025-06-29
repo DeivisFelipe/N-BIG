@@ -8,17 +8,17 @@ import time
 DATABASE = 3  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
 
 if DATABASE == 2:
-    PATH_GRAPHS = "/Saida/Graficos/AnaliseCaida/GraficosRelacoes"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseCaida/Relacoes"
     NAME = "CAIDA 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "caida_collection"
 elif DATABASE == 2:
-    PATH_GRAPHS = "/Saida/Graficos/AnaliseMAWI/GraficosRelacoes"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI/Relacoes"
     NAME = "MAWI 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
 elif DATABASE == 3:
-    PATH_GRAPHS = "/Saida/Graficos/AnaliseMAWI2025/GraficosRelacoes"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2025/Relacoes"
     NAME = "MAWI 2025"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi2025_collection"
@@ -26,7 +26,8 @@ else:
     raise ValueError("Banco de dados inválido. Use 1 para CAIDA, 2 para MAWI 2019 ou 3 para MAWI 2025.")
 
 NUMBER_BINS = 60
-print(os.makedirs(PATH_GRAPHS, exist_ok=True))
+
+today_str = datetime.now().strftime('%Y%m%d')
 
 def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
@@ -84,7 +85,7 @@ def generate_duration_histograms(collection):
     plt.xlabel("Duração (ms)")
     plt.ylabel("Quantidade de fluxos")
     plt.title("Quantidade de fluxos por duração - " + NAME)
-    plt.savefig(f"{PATH_GRAPHS}/NumeroDeFluxosPorDuracaoLinha.png")
+    plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_NumeroDeFluxosPorDuracaoLinha.png"))
     plt.close()
 
     log("Gerando gráfico de barras - Número de fluxos por duração...")
@@ -93,7 +94,7 @@ def generate_duration_histograms(collection):
     plt.xlabel("Duração (ms)")
     plt.ylabel("Quantidade de fluxos")
     plt.title("Quantidade de fluxos por duração - " + NAME)
-    plt.savefig(f"{PATH_GRAPHS}/NumeroDeFluxosPorDuracaoBarra.png")
+    plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_NumeroDeFluxosPorDuracaoBarra.png"))
     plt.close()
 
     log("Gerando gráfico de linha - Tamanho médio dos pacotes por duração...")
@@ -102,7 +103,7 @@ def generate_duration_histograms(collection):
     plt.xlabel("Duração (ms)")
     plt.ylabel("Tamanho médio de pacote (bytes)")
     plt.title("Tamanho médio dos pacotes por duração - " + NAME)
-    plt.savefig(f"{PATH_GRAPHS}/TamanhoMedioPacotesPorDuracaoLinha.png")
+    plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_TamanhoMedioPacotesPorDuracaoLinha.png"))
     plt.close()
 
     log("Gerando gráfico de barras - Tamanho médio dos pacotes por duração...")
@@ -111,7 +112,7 @@ def generate_duration_histograms(collection):
     plt.xlabel("Duração (ms)")
     plt.ylabel("Tamanho médio de pacote (bytes)")
     plt.title("Tamanho médio dos pacotes por duração - " + NAME)
-    plt.savefig(f"{PATH_GRAPHS}/TamanhoMedioPacotesPorDuracaoBarra.png")
+    plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_TamanhoMedioPacotesPorDuracaoBarra.png"))
     plt.close()
 
 def generate_volume_histograms(collection):
@@ -150,7 +151,7 @@ def generate_volume_histograms(collection):
     plt.xlabel("Volume de dados (bytes)")
     plt.ylabel("Quantidade de fluxos")
     plt.title("Quantidade de fluxos por volume - " + NAME)
-    plt.savefig(f"{PATH_GRAPHS}/NumeroFluxosPorBytesLinha.png")
+    plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_NumeroFluxosPorBytesLinha.png"))
     plt.close()
 
     log("Gerando gráfico de barras - Fluxos por volume...")
@@ -160,7 +161,7 @@ def generate_volume_histograms(collection):
     plt.xlabel("Volume de dados (bytes)")
     plt.ylabel("Quantidade de fluxos")
     plt.title("Quantidade de fluxos por volume - " + NAME)
-    plt.savefig(f"{PATH_GRAPHS}/NumeroFluxosPorBytesBarras.png")
+    plt.savefig(os.path.join(PATH_GRAPHS, f"{today_str}_NumeroFluxosPorBytesBarras.png"))
     plt.close()
 
 if __name__ == "__main__":
