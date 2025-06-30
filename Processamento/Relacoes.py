@@ -5,9 +5,9 @@ import os
 import time
 
 # Configurações
-DATABASE = 3  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
+DATABASE = 2  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
 
-if DATABASE == 2:
+if DATABASE == 1:
     PATH_GRAPHS = "Saida/Graficos/AnaliseCaida/Relacoes"
     NAME = "CAIDA 2019"
     DB_NAME = "fluxos_database"

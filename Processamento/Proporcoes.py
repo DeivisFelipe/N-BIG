@@ -5,20 +5,20 @@ import pandas as pd
 import os
 
 # Configurações gerais
-DATABASE = 3  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
+DATABASE = 1  # 1 para CAIDA, 2 para MAWI, 3 para MAWI 2025
 
 if DATABASE == 1:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseCaida/Porporcoes"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseCaida/Proporcoes"
     NAME = "CAIDA 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "caida_collection"
 elif DATABASE == 2:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI/Porporcoes"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI/Proporcoes"
     NAME = "MAWI 2019"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi_collection"
 elif DATABASE == 3:
-    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2025/Porporcoes"
+    PATH_GRAPHS = "Saida/Graficos/AnaliseMAWI2025/Proporcoes"
     NAME = "MAWI 2025"
     DB_NAME = "fluxos_database"
     COLLECTION_NAME = "mawi2025_collection"
@@ -41,8 +41,8 @@ selecionados = [mapa[o.strip()] for o in opcoes.split(",") if o.strip() in mapa]
 print("Classificações selecionadas:", ", ".join(selecionados), flush=True)
 
 # Hiperparâmetros (ajuste conforme necessidade)
-RATO_THRESHOLD = 130  # 130 bytes
-LIBELULA_THRESHOLD = 1000  # 1 segundo (em ms)
+RATO_THRESHOLD = 155  # 130 bytes
+LIBELULA_THRESHOLD = 520  # 1 segundo (em ms)
 MINIMUM_NPACKETS = 3  # mínimo de pacotes para considerar classificação
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -89,7 +89,7 @@ tartaruga_thresh = res.get("avg_duration", 0) + 3 * res.get("std_duration", 0)
 chita_thresh = res.get("avg_rate", 0) + 3 * res.get("std_rate", 0)
 CARACOL_RATE_THRESHOLD = res.get("avg_rate", 0) - res.get("std_rate", 0)
 if CARACOL_RATE_THRESHOLD < 0:
-    CARACOL_RATE_THRESHOLD = 150  # 16KB/s fallback
+    CARACOL_RATE_THRESHOLD = 50  # 16KB/s fallback
 
 log("Thresholds calculados:")
 log(f"  Elefante ≥ {elefante_thresh:.2f} bytes; ")
