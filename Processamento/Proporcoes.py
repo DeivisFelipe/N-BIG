@@ -42,7 +42,7 @@ print("Classificações selecionadas:", ", ".join(selecionados), flush=True)
 
 # Hiperparâmetros (ajuste conforme necessidade)
 RATO_THRESHOLD = 155  # 130 bytes
-LIBELULA_THRESHOLD = 520  # 1 segundo (em ms)
+LIBELULA_THRESHOLD = 330  # 1 segundo (em ms)
 MINIMUM_NPACKETS = 3  # mínimo de pacotes para considerar classificação
 
 client = pymongo.MongoClient("mongodb://localhost:27017/")
@@ -89,7 +89,7 @@ tartaruga_thresh = res.get("avg_duration", 0) + 3 * res.get("std_duration", 0)
 chita_thresh = res.get("avg_rate", 0) + 3 * res.get("std_rate", 0)
 CARACOL_RATE_THRESHOLD = res.get("avg_rate", 0) - res.get("std_rate", 0)
 if CARACOL_RATE_THRESHOLD < 0:
-    CARACOL_RATE_THRESHOLD = 50  # 16KB/s fallback
+    CARACOL_RATE_THRESHOLD = 20  # 16KB/s fallback
 
 log("Thresholds calculados:")
 log(f"  Elefante ≥ {elefante_thresh:.2f} bytes; ")
